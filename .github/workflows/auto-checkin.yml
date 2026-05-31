@@ -1,0 +1,29 @@
+name: Auto Check-in
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 1 * * *"
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run check-ins
+        env:
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          V2EX_COOKIE: ${{ secrets.V2EX_COOKIE }}
+        run: python scripts/checkin.py
