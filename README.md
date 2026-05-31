@@ -1,6 +1,6 @@
 # GitHub Actions Auto Check-in
 
-This repository contains a GitHub Actions workflow for bilibili live check-in
+This repository contains a GitHub Actions workflow for bilibili daily tasks
 and the V2EX daily mission reward.
 
 ## Usage
@@ -11,9 +11,9 @@ and the V2EX daily mission reward.
    - `BILIBILI_COOKIE`: the full Cookie header from a logged-in bilibili request.
    - `V2EX_COOKIE`: the full Cookie header from a logged-in V2EX request.
    - `TG_BOT_TOKEN`: the token from BotFather.
-   - `TG_CHAT_ID`: the chat ID that receives the first bot message.
-   - `TG_CHANNEL_ID`: optional channel ID or `@channel_username` to forward
-     the bot message to a channel.
+   - `TG_CHANNEL_ID`: the channel ID or `@channel_username` that receives the
+     Telegram message.
+   - `TG_CHAT_ID`: optional fallback chat ID if `TG_CHANNEL_ID` is not set.
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `TELEGRAM_CHANNEL_ID` are
      also supported as aliases.
 4. Open `Actions` -> `Auto Check-in` to run it manually, or wait for the schedule.
@@ -28,8 +28,25 @@ want a different time.
 - The script does not bypass captcha, two-factor checks, or anti-abuse systems.
 - If either website changes its API or page structure, the script may need an
   update.
-- To forward to a Telegram channel, add the bot to that channel as an admin with
-  permission to post messages.
-- bilibili currently returns `签到活动已下线，无法使用。` for the old live check-in
-  endpoint. The workflow treats that response as a skipped success so V2EX and
-  Telegram notifications can still complete.
+- To send to a Telegram channel, add the bot to that channel as an admin with
+  permission to post messages. `TG_BOT_TOKEN` + `TG_CHANNEL_ID` is enough.
+- Bilibili runs login verification, video watch heartbeat, video sharing,
+  one-coin voting, live sign-in, and manga sign-in. The one-coin task consumes
+  one coin when a suitable uncoined video is found.
+- If bilibili returns that an older live sign-in endpoint is offline, the
+  workflow treats that response as a skipped success so V2EX and Telegram
+  notifications can still complete.
+- V2EX checks the daily mission page, redeems the daily reward when available,
+  then reads `/balance` to report the reward amount, current total balance, and
+  latest balance record.
+- Telegram notifications are sent separately for each service, so Bilibili and
+  V2EX have independent message titles and details.
+
+## Script layout
+
+- `scripts/checkin.py`: GitHub Actions entrypoint.
+- `scripts/bilibili.py`: Bilibili login, watch, share, coin, live sign-in, and
+  manga sign-in tasks.
+- `scripts/v2ex.py`: V2EX daily mission and balance parsing.
+- `scripts/notify.py`: Telegram notification sending.
+- `scripts/common.py`: shared result model and HTTP defaults.
