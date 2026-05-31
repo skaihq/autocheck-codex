@@ -135,9 +135,10 @@ def send_telegram_notification(results: list[CheckinResult]) -> bool:
     token = env_value("TG_BOT_TOKEN", "TELEGRAM_BOT_TOKEN")
     chat_id = env_value("TG_CHAT_ID", "TELEGRAM_CHAT_ID")
     channel_id = env_value("TG_CHANNEL_ID", "TELEGRAM_CHANNEL_ID")
+    target_chat_id = channel_id or chat_id
 
-    if not token or not chat_id:
-        print("[SKIP] telegram: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID")
+    if not token or not target_chat_id:
+        print("[SKIP] telegram: missing TG_BOT_TOKEN and TG_CHANNEL_ID/TG_CHAT_ID")
         return True
 
     title = "自动打卡通知"
@@ -152,8 +153,8 @@ def send_telegram_notification(results: list[CheckinResult]) -> bool:
     try:
         sent = requests.post(
             telegram_api_url(token, "sendMessage"),
-            data={
-                "chat_id": chat_id,
+            json={
+                "chat_id": target_chat_id,
                 "text": message,
                 "parse_mode": "HTML",
                 "disable_web_page_preview": "true",
@@ -167,28 +168,7 @@ def send_telegram_notification(results: list[CheckinResult]) -> bool:
             return False
 
         print("[OK] telegram: message sent")
-
-        if not channel_id:
-            return True
-
-        forwarded = requests.post(
-            telegram_api_url(token, "forwardMessage"),
-            data={
-                "chat_id": channel_id,
-                "from_chat_id": chat_id,
-                "message_id": payload["result"]["message_id"],
-                "disable_notification": "true",
-            },
-            timeout=DEFAULT_TIMEOUT,
-        )
-        forwarded.raise_for_status()
-        forward_payload = forwarded.json()
-        if forward_payload.get("ok"):
-            print("[OK] telegram: message forwarded to channel")
-            return True
-        else:
-            print(f"[FAIL] telegram: forwardMessage failed: {forward_payload}")
-            return False
+        return True
     except Exception as exc:
         print(f"[FAIL] telegram: request failed: {exc}")
         return False
