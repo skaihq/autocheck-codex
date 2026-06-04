@@ -31,6 +31,7 @@ jobs:
           GLADOS: ${{ secrets.GLADOS }}
           RAILGUN_BASE_URL: ${{ secrets.RAILGUN_BASE_URL }}
           RAILGUN_TOKEN: ${{ secrets.RAILGUN_TOKEN }}
+          FNNAS_COOKIE: ${{ secrets.FNNAS_COOKIE }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_CHANNEL_ID: ${{ secrets.TG_CHANNEL_ID }}
