@@ -30,7 +30,13 @@ def main() -> int:
             env.get("RAILGUN_BASE_URL", RAILGUN_BASE_URL).strip() or RAILGUN_BASE_URL,
             env.get("RAILGUN_TOKEN", RAILGUN_DEFAULT_TOKEN).strip() or RAILGUN_DEFAULT_TOKEN,
         ),
-        check_fnnas(env.get("FNNAS_COOKIE", "").strip()),
+        check_fnnas(
+            env.get("FNNAS_COOKIE", "").strip(),
+            env.get("fn_pvRK_2132_saltkey", "").strip(),
+            env.get("fn_pvRK_2132_auth", "").strip(),
+            env.get("fn_pvRK_2132_sign", "").strip(),
+            env.get("FNNAS_SIGN_DATA", "").strip(),
+        ),
     ]
 
     failed = False
