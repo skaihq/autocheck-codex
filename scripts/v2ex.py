@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from html import unescape
+from urllib.parse import urlparse
 
 import requests
 
@@ -34,12 +35,24 @@ def today_yyyymmdd() -> str:
 
 
 def parse_redeem_path(html: str) -> str | None:
-    match = re.search(r"location\.href\s*=\s*['\"]([^'\"]+)['\"]", html)
-    if match:
-        return match.group(1)
-    match = re.search(r'href="(/mission/daily/redeem\?once=\d+)"', html)
-    if match:
-        return match.group(1)
+    patterns = [
+        r"location\.href\s*=\s*['\"]([^'\"]+)['\"]",
+        r"""href\s*=\s*['"]([^'"]*/mission/daily/redeem\?once=[^'"]+)['"]""",
+        r"""['"]([^'"]*/mission/daily/redeem\?once=[^'"]+)['"]""",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, html)
+        if not match:
+            continue
+
+        path = match.group(1)
+        if path == "/balance":
+            return path
+        if "/mission/daily/redeem?" in path:
+            parsed = urlparse(path)
+            return parsed.path + (f"?{parsed.query}" if parsed.query else "")
+
     return None
 
 
@@ -85,7 +98,14 @@ def balance_is_today(balance: V2EXBalance) -> bool:
 
 
 def mission_is_completed(html: str) -> bool:
-    return parse_redeem_path(html) == "/balance"
+    if parse_redeem_path(html) == "/balance":
+        return True
+
+    text = strip_tags(html)
+    return (
+        "每日登录奖励" in text
+        and ("已领取" in text or "查看我的账户余额" in text or "账户余额" in text)
+    )
 
 
 class V2EXTask:
@@ -134,11 +154,17 @@ def check_v2ex(cookie: str) -> CheckinResult:
             details.append(f"连续登录: {streak}")
 
         redeem_path = parse_redeem_path(html)
-        if redeem_path == "/balance":
+        if redeem_path == "/balance" or mission_is_completed(html):
             mission_status = "今日已领取"
         elif redeem_path:
             task.redeem(redeem_path)
             verify_html, _ = task.mission_page()
+            if not mission_is_completed(verify_html):
+                retry_path = parse_redeem_path(verify_html)
+                if retry_path and retry_path != "/balance":
+                    task.redeem(retry_path)
+                    verify_html, _ = task.mission_page()
+
             if not mission_is_completed(verify_html):
                 return CheckinResult(
                     "V2EX",
@@ -165,11 +191,6 @@ def check_v2ex(cookie: str) -> CheckinResult:
         details.append(f"记录时间: {balance.occurred_at}")
 
     if not balance_is_today(balance):
-        return CheckinResult(
-            "V2EX",
-            False,
-            "余额页未找到今日签到奖励记录",
-            details=details,
-        )
+        details.append("余额页未确认今日奖励记录，但任务页已显示完成")
 
     return CheckinResult("V2EX", True, mission_status, details=details)
