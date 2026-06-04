@@ -1,7 +1,7 @@
 # GitHub Actions Auto Check-in
 
 This repository contains a GitHub Actions workflow for bilibili daily tasks,
-the V2EX daily mission reward, and Railgun check-in.
+the V2EX daily mission reward, Railgun check-in, and FN NAS community check-in.
 
 hello
 
@@ -17,6 +17,14 @@ hello
    - `RAILGUN_BASE_URL`: optional, defaults to `https://railgun.info`.
    - `RAILGUN_TOKEN`: optional, defaults to `railgun.info`.
    - `GLADOS`, `GLADOS_COOKIE`: legacy aliases for `RAILGUN_COOKIE`.
+   - `FNNAS_COOKIE`: the full Cookie header from a logged-in
+     `https://club.fnnas.com/` request.
+   - `FNNAS_SIGN_DATA`: optional single FN NAS direct sign-in secret. Put three
+     lines in one secret: `saltkey`, `auth`, then `sign`.
+   - `fn_pvRK_2132_saltkey`, `fn_pvRK_2132_auth`, `fn_pvRK_2132_sign`:
+     optional FN NAS direct sign-in secrets. When all three are present, the
+     workflow uses the direct sign URL mode from the FN_AQ-style script instead
+     of discovering the sign parameter from the page.
    - `TG_BOT_TOKEN`: the token from BotFather.
    - `TG_CHANNEL_ID`: the channel ID or `@channel_username` that receives the
      Telegram message.
@@ -24,6 +32,14 @@ hello
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `TELEGRAM_CHANNEL_ID` are
      also supported as aliases.
 4. Open `Actions` -> `Auto Check-in` to run it manually, or wait for the schedule.
+
+Example `FNNAS_SIGN_DATA` value:
+
+```text
+R722ok73
+76f7...
+your_sign_value
+```
 
 The default schedule runs at 01:15 UTC every day, which is 09:15 in Beijing
 time. Edit the cron expression in `.github/workflows/auto-checkin.yml` if you
@@ -50,8 +66,13 @@ want a different time.
   `/api/user/status`, and `/api/user/traffic`. Notifications include sign-in
   result, remaining days, plan level, and traffic details when the API returns
   recognizable fields.
+- FN NAS community uses `https://club.fnnas.com/plugin.php?id=zqlj_sign`,
+  checks the current sign-in button, and calls the sign URL when today's
+  check-in is still available. It also supports direct `saltkey/auth/sign`
+  secrets for setups where page login detection fails.
 - Telegram notifications are sent separately for each service, so Bilibili,
-  V2EX, and Railgun have independent message titles and details.
+  V2EX, Railgun, and FN NAS community have independent message titles and
+  details.
 
 ## Script layout
 
@@ -60,5 +81,6 @@ want a different time.
   manga sign-in tasks.
 - `scripts/v2ex.py`: V2EX daily mission and balance parsing.
 - `scripts/railgun.py`: Railgun check-in, remaining days, and traffic parsing.
+- `scripts/fnnas.py`: FN NAS community Cookie check-in.
 - `scripts/notify.py`: Telegram notification sending.
 - `scripts/common.py`: shared result model and HTTP defaults.
