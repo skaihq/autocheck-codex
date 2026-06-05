@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autocheck"
+version = "0.1.0"
+description = "Simple daily check-in runner."
+requires-python = ">=3.12"
+dependencies = [
+    "requests==2.32.3",
+]
+
+[tool.setuptools.packages.find]
+include = ["autocheck*"]
+exclude = ["tests*"]

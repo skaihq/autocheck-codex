@@ -1,86 +1,88 @@
-# GitHub Actions Auto Check-in
+# Auto Check
 
-This repository contains a GitHub Actions workflow for bilibili daily tasks,
-the V2EX daily mission reward, Railgun check-in, and FN NAS community check-in.
+一个简单的 GitHub Actions 自动签到项目。
 
-hello
+支持：
 
-## Usage
+- Bilibili
+- V2EX
+- Railgun
+- Telegram 通知
 
-1. Push these files to a GitHub repository.
-2. Open `Settings` -> `Secrets and variables` -> `Actions`.
-3. Add these Repository secrets:
-   - `BILIBILI_COOKIE`: the full Cookie header from a logged-in bilibili request.
-   - `V2EX_COOKIE`: the full Cookie header from a logged-in V2EX request.
-   - `RAILGUN_COOKIE`: the full Cookie header from a logged-in Railgun request.
-     Multiple Railgun accounts can be added as multiple lines in this secret.
-   - `RAILGUN_BASE_URL`: optional, defaults to `https://railgun.info`.
-   - `RAILGUN_TOKEN`: optional, defaults to `railgun.info`.
-   - `GLADOS`, `GLADOS_COOKIE`: legacy aliases for `RAILGUN_COOKIE`.
-   - `FNNAS_COOKIE`: the full Cookie header from a logged-in
-     `https://club.fnnas.com/` request.
-   - `FNNAS_SIGN_DATA`: optional single FN NAS direct sign-in secret. Put three
-     lines in one secret: `saltkey`, `auth`, then `sign`.
-   - `fn_pvRK_2132_saltkey`, `fn_pvRK_2132_auth`, `fn_pvRK_2132_sign`:
-     optional FN NAS direct sign-in secrets. When all three are present, the
-     workflow uses the direct sign URL mode from the FN_AQ-style script instead
-     of discovering the sign parameter from the page.
-   - `TG_BOT_TOKEN`: the token from BotFather.
-   - `TG_CHANNEL_ID`: the channel ID or `@channel_username` that receives the
-     Telegram message.
-   - `TG_CHAT_ID`: optional fallback chat ID if `TG_CHANNEL_ID` is not set.
-   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `TELEGRAM_CHANNEL_ID` are
-     also supported as aliases.
-4. Open `Actions` -> `Auto Check-in` to run it manually, or wait for the schedule.
-
-Example `FNNAS_SIGN_DATA` value:
+## 目录
 
 ```text
-R722ok73
-76f7...
-your_sign_value
+autocheck/
+├─ main.py
+├─ common.py
+├─ notify.py
+└─ sites/
+   ├─ bilibili.py
+   ├─ v2ex.py
+   └─ railgun.py
 ```
 
-The default schedule runs at 01:15 UTC every day, which is 09:15 in Beijing
-time. Edit the cron expression in `.github/workflows/auto-checkin.yml` if you
-want a different time.
+说明：
 
-## Notes
+- `main.py`：程序入口。
+- `common.py`：公共结果模型、请求头、超时设置。
+- `notify.py`：Telegram 汇总通知。
+- `sites/`：各个平台的签到逻辑。
+- `tests/`：仅用于开发测试，打包时不包含。
 
-- Cookies are login credentials. Store them only in GitHub Secrets.
-- The script does not bypass captcha, two-factor checks, or anti-abuse systems.
-- If either website changes its API or page structure, the script may need an
-  update.
-- To send to a Telegram channel, add the bot to that channel as an admin with
-  permission to post messages. `TG_BOT_TOKEN` + `TG_CHANNEL_ID` is enough.
-- Bilibili runs login verification, video watch heartbeat, video sharing,
-  one-coin voting, live sign-in, and manga sign-in. The one-coin task consumes
-  one coin when a suitable uncoined video is found.
-- If bilibili returns that an older live sign-in endpoint is offline, the
-  workflow treats that response as a skipped success so V2EX and Telegram
-  notifications can still complete.
-- V2EX checks the daily mission page, redeems the daily reward when available,
-  then reads `/balance` to report the reward amount, current total balance, and
-  latest balance record.
-- Railgun uses `https://railgun.info` by default and calls `/api/user/checkin`,
-  `/api/user/status`, and `/api/user/traffic`. Notifications include sign-in
-  result, remaining days, plan level, and traffic details when the API returns
-  recognizable fields.
-- FN NAS community uses `https://club.fnnas.com/plugin.php?id=zqlj_sign`,
-  checks the current sign-in button, and calls the sign URL when today's
-  check-in is still available. It also supports direct `saltkey/auth/sign`
-  secrets for setups where page login detection fails.
-- Telegram notifications are sent separately for each service, so Bilibili,
-  V2EX, Railgun, and FN NAS community have independent message titles and
-  details.
+## 使用
 
-## Script layout
+在 GitHub 仓库里添加这些 Secrets：
 
-- `scripts/checkin.py`: GitHub Actions entrypoint.
-- `scripts/bilibili.py`: Bilibili login, watch, share, coin, live sign-in, and
-  manga sign-in tasks.
-- `scripts/v2ex.py`: V2EX daily mission and balance parsing.
-- `scripts/railgun.py`: Railgun check-in, remaining days, and traffic parsing.
-- `scripts/fnnas.py`: FN NAS community Cookie check-in.
-- `scripts/notify.py`: Telegram notification sending.
-- `scripts/common.py`: shared result model and HTTP defaults.
+```text
+BILIBILI_COOKIE
+V2EX_COOKIE
+RAILGUN_COOKIE
+RAILGUN_BASE_URL
+RAILGUN_TOKEN
+TG_BOT_TOKEN
+TG_CHAT_ID
+TG_CHANNEL_ID
+```
+
+兼容旧变量：
+
+```text
+GLADOS
+GLADOS_COOKIE
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+TELEGRAM_CHANNEL_ID
+```
+
+运行：
+
+```bash
+python -m autocheck.main
+```
+
+## 打包
+
+`pyproject.toml` 只包含 `autocheck*` 包，不包含 `tests*`。
+
+真实 Cookie 只应该放在 GitHub Secrets 或本地测试环境变量里，不要写进代码。
+
+## 通知格式
+
+Telegram 会发送一条汇总消息：
+
+```text
+📅 2026-06-05 签到汇总
+
+Bilibili
+✓ 签到成功（用户名）
+
+V2EX
+✓ 已签到（连续 300 天）
+💰 +3 铜币｜余额 4017
+
+Railgun
+✓ 签到成功
+⏳ 剩余 200 天｜Lv.21
+📶 今日流量 0 B
+```
