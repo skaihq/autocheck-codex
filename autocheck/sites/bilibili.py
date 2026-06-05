@@ -20,6 +20,11 @@ BILIBILI_ALREADY_DONE_TEXT = (
     "已签到",
     "重复",
 )
+BILIBILI_COIN_SKIP_TEXT = (
+    "硬币不足",
+    "insufficient",
+    "not enough",
+)
 
 
 def bilibili_csrf(cookie: str) -> str:
@@ -46,6 +51,11 @@ def bilibili_is_already_done(data: dict[str, Any]) -> bool:
     return code in BILIBILI_ALREADY_DONE_CODES or any(
         text in message for text in BILIBILI_ALREADY_DONE_TEXT
     )
+
+
+def bilibili_coin_should_skip(data: dict[str, Any]) -> bool:
+    message = bilibili_message(data).lower()
+    return any(text in message for text in BILIBILI_COIN_SKIP_TEXT)
 
 
 class BilibiliTask:
@@ -130,6 +140,8 @@ class BilibiliTask:
             return True, f"投币成功: {bvid}"
         if bilibili_is_already_done(data):
             return True, f"投币已完成: {bvid}"
+        if bilibili_coin_should_skip(data):
+            return True, f"投币已跳过: {bilibili_message(data)}"
         return False, f"投币失败: {bilibili_message(data)}"
 
     def share_video(self, bvid: str) -> tuple[bool, str]:
