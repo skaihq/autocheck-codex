@@ -1,0 +1,40 @@
+name: Auto Check-in
+
+on:
+  workflow_dispatch:
+  schedule:
+   - cron: "30 3 * * *"
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run check-ins
+        env:
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          V2EX_COOKIE: ${{ secrets.V2EX_COOKIE }}
+          RAILGUN_COOKIE: ${{ secrets.RAILGUN_COOKIE }}
+          GLADOS_COOKIE: ${{ secrets.GLADOS_COOKIE }}
+          GLADOS: ${{ secrets.GLADOS }}
+          RAILGUN_BASE_URL: ${{ secrets.RAILGUN_BASE_URL }}
+          RAILGUN_TOKEN: ${{ secrets.RAILGUN_TOKEN }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TG_CHANNEL_ID: ${{ secrets.TG_CHANNEL_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: python -m autocheck.main
