@@ -28,6 +28,15 @@ def clean_bot_token(token: str) -> str:
     return token
 
 
+def mask_target(value: str) -> str:
+    if not value:
+        return ""
+    if value.startswith("@"):
+        return value[:2] + "***" + value[-2:]
+    tail = value[-4:] if len(value) > 4 else value
+    return f"***{tail}"
+
+
 def today_text() -> str:
     return datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
 
@@ -118,6 +127,7 @@ def send_telegram_summary(results: list[CheckinResult], env: dict[str, str]) -> 
     chat_id = env_value(env, "TG_CHAT_ID", "TELEGRAM_CHAT_ID")
     channel_id = env_value(env, "TG_CHANNEL_ID", "TELEGRAM_CHANNEL_ID")
     target_chat_id = channel_id or chat_id
+    target_source = "TG_CHANNEL_ID" if channel_id else "TG_CHAT_ID"
 
     if not token or not target_chat_id:
         print("[SKIP] telegram: missing TG_BOT_TOKEN and TG_CHANNEL_ID/TG_CHAT_ID")
@@ -140,7 +150,17 @@ def send_telegram_summary(results: list[CheckinResult], env: dict[str, str]) -> 
             print(f"[FAIL] telegram: sendMessage failed: {payload}")
             return False
 
-        print("[OK] telegram: summary sent")
+        result = payload.get("result", {})
+        chat = result.get("chat", {}) if isinstance(result, dict) else {}
+        chat_type = chat.get("type", "unknown")
+        chat_title = chat.get("title") or chat.get("username") or ""
+        message_id = result.get("message_id", "?") if isinstance(result, dict) else "?"
+        title = f" {chat_title}" if chat_title else ""
+        print(
+            "[OK] telegram: summary sent "
+            f"to {target_source}={mask_target(target_chat_id)} "
+            f"chat={chat_type}{title} message_id={message_id}"
+        )
         return True
     except Exception as exc:
         print(f"[FAIL] telegram: request failed: {type(exc).__name__}")
